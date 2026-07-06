@@ -5,29 +5,29 @@ Update this file whenever the current phase, active feature, or implementation s
 ## Current Phase
 
 - Feature 01: Design System - Completed
-- Feature 02: TBD
+- Feature 02: Editor Chrome - Completed
 
 ## Current Goal
 
-- Define and scope Feature 02 before implementation begins.
+- Feature 02 is complete. The reusable editor navbar, floating project sidebar shell, and token-based dialog pattern are ready for future editor screens.
 
 ## Completed
 
 - Feature 01: Design System
   Added the initial design-system foundation with dark-theme token wiring, shared `cn()` utilities, and the following shadcn-style UI primitives: button, card, dialog, input, tabs, textarea, and scroll area. The homepage showcase was also added to verify the components render consistently.
+- Feature 02: Editor Chrome
+  Added `EditorNavbar` with fixed-height top chrome, left sidebar toggle controls using `PanelLeftOpen` / `PanelLeftClose`, structural center/right sections, and token-based dark styling. Added `ProjectSidebar` as a floating, fixed-position slide-in shell with project tabs, empty states, close control, and a bottom `New Project` action. Confirmed the existing dialog primitive already supports title, description, and footer actions, and updated its overlay to use the shared `bg-base` token.
 
 ## In Progress
 
-- None yet.
+- None.
 
 ## Next Up
 
-- Feature 02: TBD
-  The next feature has not been selected or defined yet.
+- Use the editor chrome components in the first full editor screen once that feature unit is specified.
 
 ## Open Questions
 
-- What should Feature 02 be in the implementation order?
 - Should future feature specs follow the same tracker format: feature status, implementation summary, architecture decisions, and package/install notes?
 
 ## Architecture Decisions
@@ -45,3 +45,4 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 01 installs added: `@radix-ui/react-dialog@^1.1.13`, `@radix-ui/react-scroll-area@^1.2.8`, `@radix-ui/react-slot@^1.2.3`, `@radix-ui/react-tabs@^1.1.11`, `class-variance-authority@^0.7.1`, `clsx@^2.1.1`, `lucide-react@^0.539.0`, and `tailwind-merge@^3.3.1`.
 - Verification completed for Feature 01 with `npm.cmd run lint` and `npm.cmd run build`.
 - The homepage currently acts as a small design-system showcase so the Feature 01 primitives are exercised end to end.
+- Feature 02 verification completed with `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
