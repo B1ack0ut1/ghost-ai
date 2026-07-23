@@ -10,10 +10,12 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 03: Authentication - Completed
 - Feature 04: Project Dialogs - Completed
 - Feature 05: Prisma Project Metadata - Completed
+- Feature 06: Project APIs - Completed
+- Feature 07: Wire Editor Home - Completed
 
 ## Current Goal
 
-- Feature 05 Prisma project metadata is complete. The project/collaborator schema, cached Prisma client, migration, generated client, and build verification are in place.
+- Feature 07 Wire Editor Home is complete. The editor home and workspace shell now load owned/shared projects server-side and use the persisted project API for create, rename, and delete actions.
 
 ## Completed
 
@@ -29,6 +31,12 @@ Update this file whenever the current phase, active feature, or implementation s
   Restored `context/feature-specs/04-project-dialogs.md` after the workspace clean removed the untracked feature spec. Added the `/editor` home screen with the specified heading, description, and `New Project` action. Added a dedicated `useProjectDialogs` hook under `components/editor/hooks/` to manage dialog state, form state, loading state, mock project data, and local create/rename/delete mutations. Added create, rename, and delete project dialogs with live slug preview, rename autofocus/Enter submit, destructive delete styling, and no persistence. Updated the project sidebar with mock owned/shared project lists, owner-only rename/delete actions, wired create action, and a mobile backdrop scrim that closes the sidebar when tapped.
 - Feature 05: Prisma Project Metadata
   Added `ProjectStatus`, `Project`, and `ProjectCollaborator` in `prisma/models/project.prisma` with owner/collaborator metadata, cascade deletion, unique project/email collaborators, and requested indexes. Added the cached server-only Prisma client in `lib/prisma.ts`, branching between `prisma+postgres://` Accelerate URLs and direct `@prisma/adapter-pg` connections. Added and applied migration `20260718010322_add_project_metadata`, generated the Prisma client, and verified the app build.
+- Feature 06: Project APIs
+  Added `GET /api/projects`, `POST /api/projects`, `PATCH /api/projects/[projectId]`, and `DELETE /api/projects/[projectId]`. Project creation uses the authenticated Clerk user ID as `ownerId`, defaults missing or blank names to `Untitled Project`, and relies on the schema's cuid ID strategy. Rename and delete verify the project exists and that the current user is the owner before mutating. Added shared API helpers for project response selection, JSON body parsing, project name validation, and consistent JSON error responses.
+- Feature 07: Wire Editor Home
+  Replaced mock project state with server-loaded owned/shared project lists and a root-level `useProjectActions` hook for dialog state and persisted create/rename/delete mutations. Added room ID preview generation with a short suffix, optional validated create IDs in `POST /api/projects`, sidebar workspace links, refresh/redirect behavior after mutations, and a minimal `/editor/[projectId]` workspace route so create/open navigation has a real destination.
+- Project dialog UI refinement
+  Removed the example placeholder from the Create Project name field so the persistent label carries the field meaning, and changed the generated Room ID preview from an input-like bordered surface into quiet inline key/value metadata.
 
 ## In Progress
 
@@ -36,7 +44,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Build the persisted project list/create flow once the next feature unit is specified.
+- Build the collaborative canvas workspace once the next feature unit is specified.
 
 ## Open Questions
 
@@ -56,7 +64,15 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 04 implementation decision: project create/rename/delete behavior is local-only mock state in `useProjectDialogs`; no API routes, database persistence, or artifact storage were added.
 - Feature 04 implementation decision: editor-specific hooks live under `components/editor/hooks/` so feature-local state stays close to the editor UI without becoming app-wide shared infrastructure.
 - Feature 05 implementation decision: `ProjectCollaborator` uses the required project/email fields plus timestamps and a composite unique constraint, without a surrogate ID.
-- Feature 05 implementation decision: `prisma.config.ts` decodes local `prisma+postgres://` API keys into direct database and shadow database URLs for Prisma CLI migrations, while app runtime code keeps using `DATABASE_URL` for the Accelerate/direct-client branch.
+- Feature 05 implementation decision: `prisma.config.ts` decodes local `prisma+postgres://` API keys into direct database and shadow database URLs for Prisma CLI migrations.
+- Feature 06 implementation decision: project API responses use `{ projects }` for lists, `{ project }` for create/rename, `{ projectId }` for delete, and `{ error: { code, message } }` for errors.
+- Feature 06 implementation decision: `/api/projects` routes are excluded from `auth.protect()` in `proxy.ts` so unauthenticated API requests reach the route handlers and return the spec-required JSON `401`; all other non-public routes remain protected by the proxy.
+- Feature 07 implementation decision: `POST /api/projects` now accepts an optional validated lowercase `id` so the editor-generated Liveblocks room ID and persisted project ID can stay aligned. Requests that omit `id` still use Prisma's schema default.
+- Feature 07 implementation decision: project list data for the editor is loaded server-side through `lib/project-data.ts`; the client hook performs mutations only and then navigates or refreshes via the Next router.
+- Feature 07 implementation decision: `/editor/[projectId]` is a minimal workspace route that validates membership against the server-loaded owned/shared lists and redirects back to `/editor` when the active project is unavailable.
+- Runtime fix decision: app runtime now also decodes `prisma+postgres://` API keys with embedded direct database URLs and uses `@prisma/adapter-pg` for local Prisma Postgres connections. This avoids the fetch-backed Prisma client path during local development.
+- Runtime fix decision: the editor project list server helper reads email addresses from Clerk session claims when present and no longer calls `currentUser()` during the Server Component render.
+- Runtime fix decision: the cached Prisma singleton now tracks a connection signature and recreates the client when the runtime connection mode changes, preventing a Next dev process from reusing a stale fetch-backed Prisma client after hot reload.
 
 ## Session Notes
 
@@ -74,3 +90,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 05 setup note: corrected the local ignored `.env` and `.env.local` `DATABASE_URL==` typo to `DATABASE_URL=` so Prisma can parse the configured URL.
 - Feature 05 migration note: started the local Prisma Postgres instance with `.\node_modules\.bin\prisma.cmd dev --detach`, applied `20260718010322_add_project_metadata` with `.\node_modules\.bin\prisma.cmd migrate deploy`, and confirmed `.\node_modules\.bin\prisma.cmd migrate status` reports the database schema is up to date.
 - Feature 05 verification completed with `.\node_modules\.bin\prisma.cmd validate`, `.\node_modules\.bin\prisma.cmd generate`, `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+- Feature 06 verification completed with `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+- Feature 06 runtime smoke test: started `npm.cmd run dev` on `http://localhost:3000` and confirmed unauthenticated `GET /api/projects`, `POST /api/projects`, `PATCH /api/projects/test-project`, and `DELETE /api/projects/test-project` return JSON `401` responses from the route handlers.
+- Feature 07 verification completed with `npm.cmd run lint`, `npm.cmd run build`, and `.\node_modules\.bin\tsc.cmd --noEmit`. The first standalone `tsc` run hit stale generated Next route types for `/editor/[projectId]`; rerunning after `next build` regenerated `.next/types` and passed.
+- Runtime fix verification: reproduced the project-list failure as Prisma `TypeError fetch failed` on the `prisma+postgres://` runtime path, confirmed the embedded direct URL points at local Prisma Postgres, started the local database with `.\node_modules\.bin\prisma.cmd dev --detach`, verified a direct `Project.findMany` query succeeds, and reran `npm.cmd run build`, `.\node_modules\.bin\tsc.cmd --noEmit`, and `npm.cmd run lint`.
+- Runtime follow-up verification: `.\node_modules\.bin\prisma.cmd dev ls` reports the local Prisma Postgres `default` instance running on TCP port `51214`; after the singleton signature fix, `npm.cmd run build`, direct `Project.findMany`, `npm.cmd run lint`, and `.\node_modules\.bin\tsc.cmd --noEmit` all pass.
+- Project dialog UI refinement verification completed with `npm.cmd run lint` and `.\node_modules\.bin\tsc.cmd --noEmit`.

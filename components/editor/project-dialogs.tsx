@@ -2,7 +2,6 @@
 
 import { type FormEvent } from "react";
 
-import { type useProjectDialogs } from "@/components/editor/hooks/use-project-dialogs";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,20 +12,23 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { type useProjectActions } from "@/hooks/use-project-actions";
 
 interface ProjectDialogsProps {
-  controller: ReturnType<typeof useProjectDialogs>;
+  controller: ReturnType<typeof useProjectActions>;
 }
 
-function getSlugPreview(slug: string) {
-  return slug || "project-slug";
+function getRoomIdPreview(roomId: string) {
+  return roomId || "untitled-project";
 }
 
 export function ProjectDialogs({ controller }: ProjectDialogsProps) {
   const {
     activeProject,
+    canSubmitName,
     closeDialog,
     dialogType,
+    errorMessage,
     formState,
     isLoading,
     submitCreateDialog,
@@ -38,7 +40,6 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
   const isCreateOpen = dialogType === "create";
   const isRenameOpen = dialogType === "rename";
   const isDeleteOpen = dialogType === "delete";
-  const canSubmitName = formState.name.trim().length > 0;
 
   function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,12 +79,20 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
                 id="create-project-name"
                 value={formState.name}
                 onChange={(event) => updateProjectName(event.target.value)}
-                placeholder="Payments Platform"
                 disabled={isLoading}
               />
-              <p className="rounded-xl border border-surface-border bg-surface px-3 py-2 font-mono text-xs text-copy-muted">
-                {getSlugPreview(formState.slug)}
+              <p
+                className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-sm text-copy-muted"
+                aria-live="polite"
+              >
+                <span>Room ID:</span>
+                <code className="font-mono text-xs text-copy-secondary">
+                  {getRoomIdPreview(formState.roomId)}
+                </code>
               </p>
+              {errorMessage ? (
+                <p className="text-sm text-error">{errorMessage}</p>
+              ) : null}
             </div>
 
             <DialogFooter>
@@ -127,9 +136,9 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
                 disabled={isLoading}
                 autoFocus
               />
-              <p className="rounded-xl border border-surface-border bg-surface px-3 py-2 font-mono text-xs text-copy-muted">
-                {getSlugPreview(formState.slug)}
-              </p>
+              {errorMessage ? (
+                <p className="text-sm text-error">{errorMessage}</p>
+              ) : null}
             </div>
 
             <DialogFooter>
@@ -159,6 +168,9 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
                 will be removed from your project list.
               </DialogDescription>
             </DialogHeader>
+            {errorMessage ? (
+              <p className="text-sm text-error">{errorMessage}</p>
+            ) : null}
 
             <DialogFooter>
               <Button
