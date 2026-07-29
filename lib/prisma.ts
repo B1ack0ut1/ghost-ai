@@ -86,11 +86,17 @@ function getPrismaConnectionConfig() {
 }
 
 const prismaConnection = getPrismaConnectionConfig();
+const staleClient =
+  globalForPrisma.prismaConnectionSignature !== prismaConnection.signature
+    ? globalForPrisma.prisma
+    : undefined;
 
 export const prisma =
   globalForPrisma.prismaConnectionSignature === prismaConnection.signature
     ? (globalForPrisma.prisma ?? createPrismaClient())
     : createPrismaClient();
+
+void staleClient?.$disconnect();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

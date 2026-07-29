@@ -91,7 +91,9 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
                 </code>
               </p>
               {errorMessage ? (
-                <p className="text-sm text-error">{errorMessage}</p>
+                <p className="text-sm text-error" aria-live="polite">
+                  {errorMessage}
+                </p>
               ) : null}
             </div>
 
@@ -137,7 +139,9 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
                 autoFocus
               />
               {errorMessage ? (
-                <p className="text-sm text-error">{errorMessage}</p>
+                <p className="text-sm text-error" aria-live="polite">
+                  {errorMessage}
+                </p>
               ) : null}
             </div>
 
@@ -169,7 +173,9 @@ export function ProjectDialogs({ controller }: ProjectDialogsProps) {
               </DialogDescription>
             </DialogHeader>
             {errorMessage ? (
-              <p className="text-sm text-error">{errorMessage}</p>
+              <p className="text-sm text-error" aria-live="polite">
+                {errorMessage}
+              </p>
             ) : null}
 
             <DialogFooter>

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 
+import { Prisma } from "@/app/generated/prisma/client";
 import {
   errorResponse,
   parseCreateProjectId,
@@ -66,14 +67,29 @@ export async function POST(request: Request) {
     );
   }
 
-  const project = await prisma.project.create({
-    data: {
-      ...(projectId ? { id: projectId } : {}),
-      ownerId: userId,
-      name,
-    },
-    select: projectResponseSelect,
-  });
+  try {
+    const project = await prisma.project.create({
+      data: {
+        ...(projectId ? { id: projectId } : {}),
+        ownerId: userId,
+        name,
+      },
+      select: projectResponseSelect,
+    });
 
-  return Response.json({ project }, { status: 201 });
+    return Response.json({ project }, { status: 201 });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return errorResponse(
+        "PROJECT_ALREADY_EXISTS",
+        "Project already exists.",
+        409,
+      );
+    }
+
+    throw error;
+  }
 }

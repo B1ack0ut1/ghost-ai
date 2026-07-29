@@ -37,6 +37,14 @@ Update this file whenever the current phase, active feature, or implementation s
   Replaced mock project state with server-loaded owned/shared project lists and a root-level `useProjectActions` hook for dialog state and persisted create/rename/delete mutations. Added room ID preview generation with a short suffix, optional validated create IDs in `POST /api/projects`, sidebar workspace links, refresh/redirect behavior after mutations, and a minimal `/editor/[projectId]` workspace route so create/open navigation has a real destination.
 - Project dialog UI refinement
   Removed the example placeholder from the Create Project name field so the persistent label carries the field meaning, and changed the generated Room ID preview from an input-like bordered surface into quiet inline key/value metadata.
+- Project dialog error announcements
+  Added polite live-region announcements to create, rename, and delete project dialog error messages while preserving the existing conditional rendering and error styling.
+- Project API Prisma error handling
+  Added targeted Prisma known request error handling around project create, rename, and delete mutations. Duplicate project IDs now return `409 PROJECT_ALREADY_EXISTS`, and late missing-row races during rename/delete return the existing `404 PROJECT_NOT_FOUND` response.
+- Project sidebar prefetch control
+  Disabled automatic Next.js prefetching for project workspace links in the sidebar while preserving the existing client-side navigation and accessible link behavior.
+- Prisma client stale-connection cleanup
+  When the development Prisma singleton's connection signature changes, the replacement client is created and the prior client is asynchronously disconnected.
 
 ## In Progress
 
@@ -73,6 +81,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Runtime fix decision: app runtime now also decodes `prisma+postgres://` API keys with embedded direct database URLs and uses `@prisma/adapter-pg` for local Prisma Postgres connections. This avoids the fetch-backed Prisma client path during local development.
 - Runtime fix decision: the editor project list server helper reads email addresses from Clerk session claims when present and no longer calls `currentUser()` during the Server Component render.
 - Runtime fix decision: the cached Prisma singleton now tracks a connection signature and recreates the client when the runtime connection mode changes, preventing a Next dev process from reusing a stale fetch-backed Prisma client after hot reload.
+- Runtime fix decision: when a connection-signature mismatch replaces the cached development Prisma client, the old client is asynchronously disconnected after replacement creation so the new client remains immediately available.
 
 ## Session Notes
 
@@ -96,3 +105,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Runtime fix verification: reproduced the project-list failure as Prisma `TypeError fetch failed` on the `prisma+postgres://` runtime path, confirmed the embedded direct URL points at local Prisma Postgres, started the local database with `.\node_modules\.bin\prisma.cmd dev --detach`, verified a direct `Project.findMany` query succeeds, and reran `npm.cmd run build`, `.\node_modules\.bin\tsc.cmd --noEmit`, and `npm.cmd run lint`.
 - Runtime follow-up verification: `.\node_modules\.bin\prisma.cmd dev ls` reports the local Prisma Postgres `default` instance running on TCP port `51214`; after the singleton signature fix, `npm.cmd run build`, direct `Project.findMany`, `npm.cmd run lint`, and `.\node_modules\.bin\tsc.cmd --noEmit` all pass.
 - Project dialog UI refinement verification completed with `npm.cmd run lint` and `.\node_modules\.bin\tsc.cmd --noEmit`.
+- Project dialog error announcement verification completed with `.\node_modules\.bin\tsc.cmd --noEmit` and `npm.cmd run lint`.
+- Project API Prisma error handling verification completed with `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`. The requested `@prisma/client/runtime/library` import path is not available in this Prisma 7 generated-client setup, so the handlers use the generated `Prisma.PrismaClientKnownRequestError` export instead.
+- Project sidebar prefetch control verification completed with `npm.cmd run lint`.
+- Prisma client stale-connection cleanup verification completed with `.\node_modules\.bin\tsc.cmd --noEmit` and `npm.cmd run lint`.

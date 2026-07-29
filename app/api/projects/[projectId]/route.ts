@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 
+import { Prisma } from "@/app/generated/prisma/client";
 import {
   errorResponse,
   parseRenameProjectName,
@@ -77,17 +78,28 @@ export async function PATCH(request: Request, context: ProjectRouteContext) {
     return ownershipError;
   }
 
-  const project = await prisma.project.update({
-    where: {
-      id: projectId,
-    },
-    data: {
-      name,
-    },
-    select: projectResponseSelect,
-  });
+  try {
+    const project = await prisma.project.update({
+      where: {
+        id: projectId,
+      },
+      data: {
+        name,
+      },
+      select: projectResponseSelect,
+    });
 
-  return Response.json({ project });
+    return Response.json({ project });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return errorResponse("PROJECT_NOT_FOUND", "Project not found.", 404);
+    }
+
+    throw error;
+  }
 }
 
 export async function DELETE(_request: Request, context: ProjectRouteContext) {
@@ -108,11 +120,22 @@ export async function DELETE(_request: Request, context: ProjectRouteContext) {
     return ownershipError;
   }
 
-  await prisma.project.delete({
-    where: {
-      id: projectId,
-    },
-  });
+  try {
+    await prisma.project.delete({
+      where: {
+        id: projectId,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return errorResponse("PROJECT_NOT_FOUND", "Project not found.", 404);
+    }
+
+    throw error;
+  }
 
   return Response.json({ projectId });
 }

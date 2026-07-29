@@ -77,6 +77,7 @@ function ProjectList({
           >
             <Link
               href={`/editor/${project.id}`}
+              prefetch={false}
               aria-current={isActive ? "page" : undefined}
               className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-base"
               aria-label={`Open ${project.name}`}
