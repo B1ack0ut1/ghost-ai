@@ -24,6 +24,7 @@ const isPublicRoute = createRouteMatcher([
   `${signInPath}(.*)`,
   `${signUpPath}(.*)`,
 ]);
+const isProjectApiRoute = createRouteMatcher(["/api/projects(.*)"]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (request.nextUrl.pathname === "/") {
@@ -33,7 +34,7 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
-  if (!isPublicRoute(request)) {
+  if (!isPublicRoute(request) && !isProjectApiRoute(request)) {
     await auth.protect();
   }
 });

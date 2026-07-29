@@ -1,20 +1,22 @@
 "use client";
 
 import { FolderOpen, Pencil, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
 
-import { type MockProject } from "@/components/editor/hooks/use-project-dialogs";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { type EditorProject } from "@/types/project";
 
 interface ProjectSidebarProps {
+  activeProjectId?: string;
   isOpen: boolean;
   onClose: () => void;
   onCreateProject: () => void;
-  onDeleteProject: (project: MockProject) => void;
-  onRenameProject: (project: MockProject) => void;
-  ownedProjects: MockProject[];
-  sharedProjects: MockProject[];
+  onDeleteProject: (project: EditorProject) => void;
+  onRenameProject: (project: EditorProject) => void;
+  ownedProjects: EditorProject[];
+  sharedProjects: EditorProject[];
 }
 
 interface EmptyProjectsStateProps {
@@ -23,11 +25,12 @@ interface EmptyProjectsStateProps {
 }
 
 interface ProjectListProps {
+  activeProjectId?: string;
   emptyDescription: string;
   emptyTitle: string;
-  onDeleteProject: (project: MockProject) => void;
-  onRenameProject: (project: MockProject) => void;
-  projects: MockProject[];
+  onDeleteProject: (project: EditorProject) => void;
+  onRenameProject: (project: EditorProject) => void;
+  projects: EditorProject[];
 }
 
 function EmptyProjectsState({ title, description }: EmptyProjectsStateProps) {
@@ -45,6 +48,7 @@ function EmptyProjectsState({ title, description }: EmptyProjectsStateProps) {
 }
 
 function ProjectList({
+  activeProjectId,
   emptyDescription,
   emptyTitle,
   onDeleteProject,
@@ -61,14 +65,20 @@ function ProjectList({
     <div className="flex flex-col gap-2 overflow-y-auto pr-1">
       {projects.map((project) => {
         const canManage = project.role === "owner";
+        const isActive = project.id === activeProjectId;
 
         return (
           <div
             key={project.id}
-            className="group grid min-h-20 grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-surface-border bg-surface px-3 py-3 transition-colors hover:bg-subtle"
+            className={cn(
+              "group grid min-h-20 grid-cols-[1fr_auto] items-center gap-3 rounded-2xl border border-surface-border bg-surface px-3 py-3 transition-colors hover:bg-subtle",
+              isActive && "border-brand bg-brand-dim"
+            )}
           >
-            <button
-              type="button"
+            <Link
+              href={`/editor/${project.id}`}
+              prefetch={false}
+              aria-current={isActive ? "page" : undefined}
               className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-base"
               aria-label={`Open ${project.name}`}
             >
@@ -76,12 +86,12 @@ function ProjectList({
                 {project.name}
               </span>
               <span className="mt-1 block truncate font-mono text-xs text-copy-muted">
-                {project.slug}
+                {project.id}
               </span>
               <span className="mt-2 block text-xs text-copy-faint">
                 {project.updatedAt}
               </span>
-            </button>
+            </Link>
 
             {canManage ? (
               <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
@@ -114,6 +124,7 @@ function ProjectList({
 }
 
 export function ProjectSidebar({
+  activeProjectId,
   isOpen,
   onClose,
   onCreateProject,
@@ -165,6 +176,7 @@ export function ProjectSidebar({
           </TabsList>
           <TabsContent value="my-projects" className="min-h-0 flex-1">
             <ProjectList
+              activeProjectId={activeProjectId}
               emptyTitle="No projects yet"
               emptyDescription="Create a project to start a workspace."
               onDeleteProject={onDeleteProject}
@@ -174,6 +186,7 @@ export function ProjectSidebar({
           </TabsContent>
           <TabsContent value="shared" className="min-h-0 flex-1">
             <ProjectList
+              activeProjectId={activeProjectId}
               emptyTitle="No shared projects"
               emptyDescription="Shared workspaces will appear here."
               onDeleteProject={onDeleteProject}
