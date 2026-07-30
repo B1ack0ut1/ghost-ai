@@ -98,9 +98,11 @@ export function ShareDialog({
       return;
     }
 
+    let isCancelled = false;
     const controller = new AbortController();
 
     async function loadCollaborators() {
+      setCollaborators([]);
       setIsLoading(true);
       setErrorMessage(null);
 
@@ -119,6 +121,10 @@ export function ShareDialog({
 
         const nextCollaborators = parseCollaborators(body);
 
+        if (isCancelled) {
+          return;
+        }
+
         if (!nextCollaborators) {
           throw new Error("Collaborators could not be loaded.");
         }
@@ -129,13 +135,15 @@ export function ShareDialog({
           return;
         }
 
-        setErrorMessage(
-          error instanceof Error
-            ? error.message
-            : "Collaborators could not be loaded.",
-        );
+        if (!isCancelled) {
+          setErrorMessage(
+            error instanceof Error
+              ? error.message
+              : "Collaborators could not be loaded.",
+          );
+        }
       } finally {
-        if (!controller.signal.aborted) {
+        if (!isCancelled) {
           setIsLoading(false);
         }
       }
@@ -143,7 +151,10 @@ export function ShareDialog({
 
     void loadCollaborators();
 
-    return () => controller.abort();
+    return () => {
+      isCancelled = true;
+      controller.abort();
+    };
   }, [open, projectId]);
 
   useEffect(() => {
