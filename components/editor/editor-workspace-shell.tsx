@@ -36,6 +36,7 @@ export function EditorWorkspaceShell({
         onShareClick={() => setIsShareDialogOpen(true)}
         onSidebarToggle={() => setIsProjectSidebarOpen((isOpen) => !isOpen)}
         projectName={projectName}
+        showWorkspaceActions
       />
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
         <ProjectSidebar

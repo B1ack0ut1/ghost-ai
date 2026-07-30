@@ -2,6 +2,8 @@ import "server-only";
 
 import { clerkClient } from "@clerk/nextjs/server";
 
+import { withClerkApiTimeout } from "@/lib/clerk-api";
+import { normalizeEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 export interface ProjectCollaboratorResponse {
@@ -14,10 +16,6 @@ interface ClerkUserDisplay {
   avatarUrl: string;
   emails: string[];
   name: string | null;
-}
-
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
 }
 
 function getDisplayName(user: {
@@ -43,32 +41,42 @@ async function getClerkUserDisplays(emails: string[]) {
       { length: Math.ceil(emails.length / 100) },
       (_, index) => emails.slice(index * 100, (index + 1) * 100),
     );
-    const userLists = await Promise.all(
+    const userLists = await Promise.allSettled(
       emailBatches.map((emailBatch) =>
-        client.users.getUserList({
-          emailAddress: emailBatch,
-          limit: emailBatch.length,
-        }),
+        withClerkApiTimeout(
+          client.users.getUserList({
+            emailAddress: emailBatch,
+            limit: emailBatch.length,
+          }),
+        ),
       ),
     );
     const displays = new Map<string, ClerkUserDisplay>();
 
-    for (const user of userLists.flatMap((userList) => userList.data)) {
-      const display = {
-        avatarUrl: user.imageUrl,
-        emails: user.emailAddresses.map((address) =>
-          normalizeEmail(address.emailAddress),
-        ),
-        name: getDisplayName(user),
-      };
+    for (const userList of userLists) {
+      if (userList.status !== "fulfilled") {
+        continue;
+      }
 
-      for (const email of display.emails) {
-        displays.set(email, display);
+      for (const user of userList.value.data) {
+        const display = {
+          avatarUrl: user.imageUrl,
+          emails: user.emailAddresses.map((address) =>
+            normalizeEmail(address.emailAddress),
+          ),
+          name: getDisplayName(user),
+        };
+
+        for (const email of display.emails) {
+          displays.set(email, display);
+        }
       }
     }
 
     return displays;
-  } catch {
+  } catch (error) {
+    console.error("Unable to resolve Clerk collaborator display data.", error);
+
     // A deleted user or a temporarily unavailable Clerk API must not prevent
     // project members from seeing the access list.
     return new Map<string, ClerkUserDisplay>();

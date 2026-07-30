@@ -2,6 +2,8 @@ import "server-only";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
 
+import { withClerkApiTimeout } from "@/lib/clerk-api";
+import { normalizeEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 export interface CurrentProjectIdentity {
@@ -36,10 +38,6 @@ function getPrimaryEmail(sessionClaims: unknown) {
   }
 
   return null;
-}
-
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
 }
 
 function getEmailAddresses(sessionClaims: unknown, primaryEmail: string | null) {
@@ -81,7 +79,7 @@ function getEmailAddresses(sessionClaims: unknown, primaryEmail: string | null) 
 async function getClerkEmailAddresses(userId: string) {
   try {
     const client = await clerkClient();
-    const user = await client.users.getUser(userId);
+    const user = await withClerkApiTimeout(client.users.getUser(userId));
     const emailAddresses = user.emailAddresses
       .map((address) => normalizeEmail(address.emailAddress))
       .filter(Boolean);
@@ -94,7 +92,9 @@ async function getClerkEmailAddresses(userId: string) {
       emailAddresses,
       primaryEmail: primaryEmail ? normalizeEmail(primaryEmail) : null,
     };
-  } catch {
+  } catch (error) {
+    console.error("Unable to resolve the current user's Clerk email addresses.", error);
+
     // Session claims remain a useful fallback if Clerk's Backend API is
     // temporarily unavailable during a server render.
     return { emailAddresses: [], primaryEmail: null };

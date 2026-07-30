@@ -53,6 +53,16 @@ Update this file whenever the current phase, active feature, or implementation s
   Disabled automatic Next.js prefetching for project workspace links in the sidebar while preserving the existing client-side navigation and accessible link behavior.
 - Prisma client stale-connection cleanup
   When the development Prisma singleton's connection signature changes, the replacement client is created and the prior client is asynchronously disconnected.
+- Clerk Backend API timeout and error visibility
+  Added a five-second timeout around Clerk user and collaborator-list lookups, and log lookup failures before preserving the existing resilient email-only fallback.
+- Shared email normalization
+  Centralized trim-and-lowercase email normalization in a shared utility used by project-access and collaborator flows.
+- Shared collaborator mutation validation
+  Centralized authentication, JSON parsing, email validation, and ownership checks for collaborator invite and removal requests while preserving their response behavior.
+- Typed collaborator access results
+  Added explicit success/error result unions for collaborator ownership validation so TypeScript reliably narrows error responses before mutations.
+- Explicit workspace navbar contract
+  Made workspace-only navbar controls an explicit discriminated prop state, requiring their project and callback data whenever they are rendered.
 
 ## In Progress
 
@@ -124,3 +134,6 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 08 verification completed with `npm.cmd run build`, `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `git diff --check`.
 - Feature 09 verification completed with `npm.cmd run lint`, `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run build`, and `git diff --check`.
 - Shared-project Clerk email resolution fix verification completed with `npm.cmd run lint` and `.\node_modules\.bin\tsc.cmd --noEmit`.
+- Clerk Backend API timeout and error visibility verification completed with targeted ESLint for the changed `lib/` modules and `git diff --check`. Repository-wide lint and TypeScript checks remain blocked by a pre-existing syntax error at `app/editor/[roomId]/page.tsx:46` in an unrelated user-modified file.
+- Shared collaborator mutation validation verification completed with targeted ESLint for the collaborators route and `git diff --check`.
+- Explicit workspace navbar contract verification completed with targeted ESLint for the navbar shells and `git diff --check`.

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentEditorProjectLists } from "@/app/editor/project-lists";
 import { AccessDenied } from "@/components/editor/access-denied";
 import { EditorWorkspaceShell } from "@/components/editor/editor-workspace-shell";
+import { getSignInUrl } from "@/lib/clerk-api";
 import {
   getAccessibleProject,
   getCurrentProjectIdentity,
@@ -21,7 +22,7 @@ export default async function EditorWorkspacePage({
   const identity = await getCurrentProjectIdentity();
 
   if (!identity) {
-    redirect(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/sign-in");
+    redirect(`${getSignInUrl()}?redirect_url=${encodeURIComponent(`/editor/${roomId}`)}`);
   }
 
   const [project, projectLists] = await Promise.all([

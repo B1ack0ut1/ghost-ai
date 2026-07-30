@@ -7,6 +7,7 @@ import {
 } from "@/lib/collaborators";
 import { errorResponse, readJsonObject } from "@/lib/project-api";
 import {
+  type AccessibleProject,
   getAccessibleProject,
   getCurrentProjectIdentity,
 } from "@/lib/project-access";
@@ -18,7 +19,25 @@ interface CollaboratorRouteContext {
   }>;
 }
 
-async function getProjectForCurrentUser(projectId: string) {
+interface CollaboratorRequestSuccess {
+  email: string;
+}
+
+interface ErrorResult {
+  error: Response;
+}
+
+interface ProjectAccessSuccess {
+  project: AccessibleProject;
+}
+
+type CollaboratorRequestResult = CollaboratorRequestSuccess | ErrorResult;
+
+type ProjectAccessResult = ProjectAccessSuccess | ErrorResult;
+
+async function getProjectForCurrentUser(
+  projectId: string,
+): Promise<ProjectAccessResult> {
   const identity = await getCurrentProjectIdentity();
 
   if (!identity) {
@@ -34,7 +53,7 @@ async function getProjectForCurrentUser(projectId: string) {
   return { project };
 }
 
-async function assertOwner(projectId: string) {
+async function assertOwner(projectId: string): Promise<ProjectAccessResult> {
   const result = await getProjectForCurrentUser(projectId);
 
   if ("error" in result) {
@@ -54,6 +73,47 @@ async function assertOwner(projectId: string) {
   return result;
 }
 
+async function parseCollaboratorRequest(
+  request: Request,
+  projectId: string,
+): Promise<CollaboratorRequestResult> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return {
+      error: errorResponse("UNAUTHENTICATED", "Authentication is required.", 401),
+    };
+  }
+
+  const body = await readJsonObject(request);
+
+  if (!body) {
+    return {
+      error: errorResponse(
+        "INVALID_REQUEST",
+        "Request body must be a JSON object.",
+        400,
+      ),
+    };
+  }
+
+  const email = parseCollaboratorEmail(body);
+
+  if (!email) {
+    return {
+      error: errorResponse("INVALID_EMAIL", "Enter a valid email address.", 400),
+    };
+  }
+
+  const owner = await assertOwner(projectId);
+
+  if ("error" in owner) {
+    return owner;
+  }
+
+  return { email };
+}
+
 export async function GET(_request: Request, context: CollaboratorRouteContext) {
   const { projectId } = await context.params;
   const result = await getProjectForCurrentUser(projectId);
@@ -68,30 +128,14 @@ export async function GET(_request: Request, context: CollaboratorRouteContext) 
 }
 
 export async function POST(request: Request, context: CollaboratorRouteContext) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return errorResponse("UNAUTHENTICATED", "Authentication is required.", 401);
-  }
-
-  const body = await readJsonObject(request);
-
-  if (!body) {
-    return errorResponse("INVALID_REQUEST", "Request body must be a JSON object.", 400);
-  }
-
-  const email = parseCollaboratorEmail(body);
-
-  if (!email) {
-    return errorResponse("INVALID_EMAIL", "Enter a valid email address.", 400);
-  }
-
   const { projectId } = await context.params;
-  const result = await assertOwner(projectId);
+  const result = await parseCollaboratorRequest(request, projectId);
 
   if ("error" in result) {
     return result.error;
   }
+
+  const { email } = result;
 
   try {
     await prisma.projectCollaborator.create({
@@ -118,30 +162,14 @@ export async function POST(request: Request, context: CollaboratorRouteContext) 
 }
 
 export async function DELETE(request: Request, context: CollaboratorRouteContext) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return errorResponse("UNAUTHENTICATED", "Authentication is required.", 401);
-  }
-
-  const body = await readJsonObject(request);
-
-  if (!body) {
-    return errorResponse("INVALID_REQUEST", "Request body must be a JSON object.", 400);
-  }
-
-  const email = parseCollaboratorEmail(body);
-
-  if (!email) {
-    return errorResponse("INVALID_EMAIL", "Enter a valid email address.", 400);
-  }
-
   const { projectId } = await context.params;
-  const result = await assertOwner(projectId);
+  const result = await parseCollaboratorRequest(request, projectId);
 
   if ("error" in result) {
     return result.error;
   }
+
+  const { email } = result;
 
   try {
     await prisma.projectCollaborator.delete({

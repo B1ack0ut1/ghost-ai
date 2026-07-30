@@ -192,7 +192,7 @@ export function ShareDialog({
 
     const invitedEmail = email.trim();
 
-    if (!invitedEmail || isLoading || !canManageAccess) {
+    if (!invitedEmail || isLoading || removingEmail !== null || !canManageAccess) {
       return;
     }
 
@@ -267,7 +267,10 @@ export function ShareDialog({
                   onChange={(event) => setEmail(event.target.value)}
                   disabled={isLoading}
                 />
-                <Button type="submit" disabled={isLoading || email.trim().length === 0}>
+                <Button
+                  type="submit"
+                  disabled={isLoading || removingEmail !== null || email.trim().length === 0}
+                >
                   <Mail className="h-4 w-4" />
                   Invite
                 </Button>
@@ -339,7 +342,7 @@ export function ShareDialog({
                           variant="ghost"
                           size="icon"
                           aria-label={`Remove ${collaborator.email}`}
-                          disabled={isLoading || removingEmail === collaborator.email}
+                          disabled={isLoading || removingEmail !== null}
                           onClick={() => void handleRemove(collaborator.email)}
                         >
                           <Trash2 className="h-4 w-4 text-error" />
