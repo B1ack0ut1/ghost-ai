@@ -1,6 +1,6 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 
 import { prisma } from "@/lib/prisma";
 
@@ -11,6 +11,7 @@ export interface CurrentProjectIdentity {
 }
 
 export interface AccessibleProject {
+  canManageAccess: boolean;
   id: string;
   name: string;
 }
@@ -30,11 +31,15 @@ function getPrimaryEmail(sessionClaims: unknown) {
     const value = claims[key];
 
     if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
+      return normalizeEmail(value);
     }
   }
 
   return null;
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
 }
 
 function getEmailAddresses(sessionClaims: unknown, primaryEmail: string | null) {
@@ -51,12 +56,16 @@ function getEmailAddresses(sessionClaims: unknown, primaryEmail: string | null) 
     (key) => {
       const value = claims[key];
 
-      return Array.isArray(value)
-        ? value.filter(
-            (item): item is string =>
-              typeof item === "string" && item.trim().length > 0,
-          )
-        : [];
+      if (!Array.isArray(value)) {
+        return [];
+      }
+
+      return value
+        .filter(
+          (item): item is string =>
+            typeof item === "string" && item.trim().length > 0,
+        )
+        .map(normalizeEmail);
     },
   );
 
@@ -69,6 +78,29 @@ function getEmailAddresses(sessionClaims: unknown, primaryEmail: string | null) 
   ];
 }
 
+async function getClerkEmailAddresses(userId: string) {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const emailAddresses = user.emailAddresses
+      .map((address) => normalizeEmail(address.emailAddress))
+      .filter(Boolean);
+    const primaryEmail =
+      user.emailAddresses.find(
+        (address) => address.id === user.primaryEmailAddressId,
+      )?.emailAddress ?? null;
+
+    return {
+      emailAddresses,
+      primaryEmail: primaryEmail ? normalizeEmail(primaryEmail) : null,
+    };
+  } catch {
+    // Session claims remain a useful fallback if Clerk's Backend API is
+    // temporarily unavailable during a server render.
+    return { emailAddresses: [], primaryEmail: null };
+  }
+}
+
 export async function getCurrentProjectIdentity(): Promise<CurrentProjectIdentity | null> {
   const { sessionClaims, userId } = await auth();
 
@@ -76,11 +108,18 @@ export async function getCurrentProjectIdentity(): Promise<CurrentProjectIdentit
     return null;
   }
 
-  const primaryEmail = getPrimaryEmail(sessionClaims);
+  const claimedPrimaryEmail = getPrimaryEmail(sessionClaims);
+  const claimedEmailAddresses = getEmailAddresses(
+    sessionClaims,
+    claimedPrimaryEmail,
+  );
+  const clerkIdentity = await getClerkEmailAddresses(userId);
 
   return {
-    emailAddresses: getEmailAddresses(sessionClaims, primaryEmail),
-    primaryEmail,
+    emailAddresses: [
+      ...new Set([...clerkIdentity.emailAddresses, ...claimedEmailAddresses]),
+    ],
+    primaryEmail: clerkIdentity.primaryEmail ?? claimedPrimaryEmail,
     userId,
   };
 }
@@ -101,7 +140,7 @@ export async function getAccessibleProject(
       }
     : undefined;
 
-  return prisma.project.findFirst({
+  const project = await prisma.project.findFirst({
     where: {
       id: projectId,
       OR: [
@@ -114,6 +153,17 @@ export async function getAccessibleProject(
     select: {
       id: true,
       name: true,
+      ownerId: true,
     },
   });
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    canManageAccess: project.ownerId === identity.userId,
+    id: project.id,
+    name: project.name,
+  };
 }

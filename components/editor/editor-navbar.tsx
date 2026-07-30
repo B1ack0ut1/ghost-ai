@@ -15,6 +15,7 @@ interface EditorNavbarProps {
   isAiSidebarOpen?: boolean;
   isSidebarOpen: boolean;
   onAiSidebarToggle?: () => void;
+  onShareClick?: () => void;
   onSidebarToggle: () => void;
   projectName?: string;
 }
@@ -23,6 +24,7 @@ export function EditorNavbar({
   isAiSidebarOpen,
   isSidebarOpen,
   onAiSidebarToggle,
+  onShareClick,
   onSidebarToggle,
   projectName,
 }: EditorNavbarProps) {
@@ -56,8 +58,8 @@ export function EditorNavbar({
               type="button"
               variant="ghost"
               size="sm"
-              disabled
               aria-label="Share project"
+              onClick={onShareClick}
             >
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline">Share</span>

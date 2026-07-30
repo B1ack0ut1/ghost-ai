@@ -26,7 +26,7 @@ export default async function EditorWorkspacePage({
 
   const [project, projectLists] = await Promise.all([
     getAccessibleProject(roomId, identity),
-    getCurrentEditorProjectLists(),
+    getCurrentEditorProjectLists(identity),
   ]);
 
   if (!project) {
@@ -36,6 +36,7 @@ export default async function EditorWorkspacePage({
   return (
     <EditorWorkspaceShell
       {...projectLists}
+      canManageAccess={project.canManageAccess}
       projectId={project.id}
       projectName={project.name}
     />

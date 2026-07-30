@@ -5,10 +5,12 @@ import { useState } from "react";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import { ShareDialog } from "@/components/editor/share-dialog";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { type EditorProjectLists } from "@/types/project";
 
 interface EditorWorkspaceShellProps extends EditorProjectLists {
+  canManageAccess: boolean;
   projectId: string;
   projectName: string;
 }
@@ -16,11 +18,13 @@ interface EditorWorkspaceShellProps extends EditorProjectLists {
 export function EditorWorkspaceShell({
   projectId,
   projectName,
+  canManageAccess,
   ownedProjects,
   sharedProjects,
 }: EditorWorkspaceShellProps) {
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true);
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(false);
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   const projectActions = useProjectActions({ activeProjectId: projectId });
 
   return (
@@ -29,6 +33,7 @@ export function EditorWorkspaceShell({
         isAiSidebarOpen={isAiSidebarOpen}
         isSidebarOpen={isProjectSidebarOpen}
         onAiSidebarToggle={() => setIsAiSidebarOpen((isOpen) => !isOpen)}
+        onShareClick={() => setIsShareDialogOpen(true)}
         onSidebarToggle={() => setIsProjectSidebarOpen((isOpen) => !isOpen)}
         projectName={projectName}
       />
@@ -81,6 +86,13 @@ export function EditorWorkspaceShell({
         </aside>
       </div>
       <ProjectDialogs controller={projectActions} />
+      <ShareDialog
+        canManageAccess={canManageAccess}
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+        projectId={projectId}
+        projectName={projectName}
+      />
     </main>
   );
 }

@@ -13,10 +13,11 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 06: Project APIs - Completed
 - Feature 07: Wire Editor Home - Completed
 - Feature 08: Editor Workspace Shell - Completed
+- Feature 09: Share Dialog - Completed
 
 ## Current Goal
 
-- Feature 08 Editor Workspace Shell is complete. The authenticated workspace route now verifies project access server-side and renders the project-aware editor shell without canvas, Liveblocks, AI chat, or sharing behavior.
+- Feature 09 Share Dialog is complete. Workspace members can inspect the current collaborator list, while owners can invite by email, remove collaborators, and copy the project link.
 
 ## Completed
 
@@ -38,6 +39,10 @@ Update this file whenever the current phase, active feature, or implementation s
   Replaced mock project state with server-loaded owned/shared project lists and a root-level `useProjectActions` hook for dialog state and persisted create/rename/delete mutations. Added room ID preview generation with a short suffix, optional validated create IDs in `POST /api/projects`, sidebar workspace links, refresh/redirect behavior after mutations, and an initial minimal workspace route so create/open navigation has a real destination.
 - Feature 08: Editor Workspace Shell
   Replaced the minimal workspace route with the `/editor/[roomId]` server component. Added shared Clerk identity and project-access helpers, a centered access-denied state for missing or unauthorized projects, and a full-viewport project-aware workspace shell with the existing highlighted project sidebar, project navbar, canvas placeholder, and toggleable AI-sidebar placeholder.
+- Feature 09: Share Dialog
+  Added a workspace Share action and dialog backed by `GET`, `POST`, and `DELETE /api/projects/[projectId]/collaborators`. Project members can list collaborators; ownership is enforced server-side for invitation and removal. Collaborator records remain email-based in PostgreSQL and are enriched at read time through Clerk's Backend API with display names and avatars when available, falling back to the stored email. Owners can invite, remove, and copy the current workspace URL with temporary confirmation; collaborators receive a read-only dialog.
+- Shared-project Clerk email resolution fix
+  Updated project-access identity resolution to load the authenticated user’s email addresses through Clerk’s Backend API. This ensures email-based collaborator access and the shared-project sidebar work for sign-in methods whose session claims do not include an email address, including Google sign-in.
 - Project dialog UI refinement
   Removed the example placeholder from the Create Project name field so the persistent label carries the field meaning, and changed the generated Room ID preview from an input-like bordered surface into quiet inline key/value metadata.
 - Project dialog error announcements
@@ -83,8 +88,10 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 07 implementation decision: project workspace links use the persisted project ID as the room ID so project selection and the future Liveblocks room identifier remain aligned.
 - Feature 08 implementation decision: `/editor/[roomId]` resolves project access through `lib/project-access.ts`; a missing project and an unauthorized project intentionally share the same `AccessDenied` response to avoid revealing project existence.
 - Feature 08 implementation decision: the workspace shell is client-side only for sidebar controls and project dialogs, while its page and access checks remain server-side.
+- Feature 09 implementation decision: `ProjectCollaborator` remains the sole source of access-list membership and stores only email addresses; Clerk users are resolved at request time through `clerkClient().users.getUserList()` and a Clerk lookup failure intentionally degrades to email-only list entries.
+- Feature 09 implementation decision: collaborator listing permits any current project member, while the invite and removal endpoints independently verify the authenticated requester is the project owner.
 - Runtime fix decision: app runtime now also decodes `prisma+postgres://` API keys with embedded direct database URLs and uses `@prisma/adapter-pg` for local Prisma Postgres connections. This avoids the fetch-backed Prisma client path during local development.
-- Runtime fix decision: the editor project list server helper reads email addresses from Clerk session claims when present and no longer calls `currentUser()` during the Server Component render.
+- Runtime fix decision: project-access identity resolves email addresses through Clerk’s Backend API using the authenticated user ID, with session-claim email fields retained only as a resilience fallback. The workspace and editor-home project lists share the same resolved identity during a workspace render.
 - Runtime fix decision: the cached Prisma singleton now tracks a connection signature and recreates the client when the runtime connection mode changes, preventing a Next dev process from reusing a stale fetch-backed Prisma client after hot reload.
 - Runtime fix decision: when a connection-signature mismatch replaces the cached development Prisma client, the old client is asynchronously disconnected after replacement creation so the new client remains immediately available.
 
@@ -115,3 +122,5 @@ Update this file whenever the current phase, active feature, or implementation s
 - Project sidebar prefetch control verification completed with `npm.cmd run lint`.
 - Prisma client stale-connection cleanup verification completed with `.\node_modules\.bin\tsc.cmd --noEmit` and `npm.cmd run lint`.
 - Feature 08 verification completed with `npm.cmd run build`, `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `git diff --check`.
+- Feature 09 verification completed with `npm.cmd run lint`, `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run build`, and `git diff --check`.
+- Shared-project Clerk email resolution fix verification completed with `npm.cmd run lint` and `.\node_modules\.bin\tsc.cmd --noEmit`.
