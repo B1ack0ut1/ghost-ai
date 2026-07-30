@@ -12,10 +12,11 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 05: Prisma Project Metadata - Completed
 - Feature 06: Project APIs - Completed
 - Feature 07: Wire Editor Home - Completed
+- Feature 08: Editor Workspace Shell - Completed
 
 ## Current Goal
 
-- Feature 07 Wire Editor Home is complete. The editor home and workspace shell now load owned/shared projects server-side and use the persisted project API for create, rename, and delete actions.
+- Feature 08 Editor Workspace Shell is complete. The authenticated workspace route now verifies project access server-side and renders the project-aware editor shell without canvas, Liveblocks, AI chat, or sharing behavior.
 
 ## Completed
 
@@ -34,7 +35,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 06: Project APIs
   Added `GET /api/projects`, `POST /api/projects`, `PATCH /api/projects/[projectId]`, and `DELETE /api/projects/[projectId]`. Project creation uses the authenticated Clerk user ID as `ownerId`, defaults missing or blank names to `Untitled Project`, and relies on the schema's cuid ID strategy. Rename and delete verify the project exists and that the current user is the owner before mutating. Added shared API helpers for project response selection, JSON body parsing, project name validation, and consistent JSON error responses.
 - Feature 07: Wire Editor Home
-  Replaced mock project state with server-loaded owned/shared project lists and a root-level `useProjectActions` hook for dialog state and persisted create/rename/delete mutations. Added room ID preview generation with a short suffix, optional validated create IDs in `POST /api/projects`, sidebar workspace links, refresh/redirect behavior after mutations, and a minimal `/editor/[projectId]` workspace route so create/open navigation has a real destination.
+  Replaced mock project state with server-loaded owned/shared project lists and a root-level `useProjectActions` hook for dialog state and persisted create/rename/delete mutations. Added room ID preview generation with a short suffix, optional validated create IDs in `POST /api/projects`, sidebar workspace links, refresh/redirect behavior after mutations, and an initial minimal workspace route so create/open navigation has a real destination.
+- Feature 08: Editor Workspace Shell
+  Replaced the minimal workspace route with the `/editor/[roomId]` server component. Added shared Clerk identity and project-access helpers, a centered access-denied state for missing or unauthorized projects, and a full-viewport project-aware workspace shell with the existing highlighted project sidebar, project navbar, canvas placeholder, and toggleable AI-sidebar placeholder.
 - Project dialog UI refinement
   Removed the example placeholder from the Create Project name field so the persistent label carries the field meaning, and changed the generated Room ID preview from an input-like bordered surface into quiet inline key/value metadata.
 - Project dialog error announcements
@@ -52,7 +55,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Build the collaborative canvas workspace once the next feature unit is specified.
+- Build the collaborative canvas once the next feature unit is specified.
 
 ## Open Questions
 
@@ -77,7 +80,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 06 implementation decision: `/api/projects` routes are excluded from `auth.protect()` in `proxy.ts` so unauthenticated API requests reach the route handlers and return the spec-required JSON `401`; all other non-public routes remain protected by the proxy.
 - Feature 07 implementation decision: `POST /api/projects` now accepts an optional validated lowercase `id` so the editor-generated Liveblocks room ID and persisted project ID can stay aligned. Requests that omit `id` still use Prisma's schema default.
 - Feature 07 implementation decision: project list data for the editor is loaded server-side through `lib/project-data.ts`; the client hook performs mutations only and then navigates or refreshes via the Next router.
-- Feature 07 implementation decision: `/editor/[projectId]` is a minimal workspace route that validates membership against the server-loaded owned/shared lists and redirects back to `/editor` when the active project is unavailable.
+- Feature 07 implementation decision: project workspace links use the persisted project ID as the room ID so project selection and the future Liveblocks room identifier remain aligned.
+- Feature 08 implementation decision: `/editor/[roomId]` resolves project access through `lib/project-access.ts`; a missing project and an unauthorized project intentionally share the same `AccessDenied` response to avoid revealing project existence.
+- Feature 08 implementation decision: the workspace shell is client-side only for sidebar controls and project dialogs, while its page and access checks remain server-side.
 - Runtime fix decision: app runtime now also decodes `prisma+postgres://` API keys with embedded direct database URLs and uses `@prisma/adapter-pg` for local Prisma Postgres connections. This avoids the fetch-backed Prisma client path during local development.
 - Runtime fix decision: the editor project list server helper reads email addresses from Clerk session claims when present and no longer calls `currentUser()` during the Server Component render.
 - Runtime fix decision: the cached Prisma singleton now tracks a connection signature and recreates the client when the runtime connection mode changes, preventing a Next dev process from reusing a stale fetch-backed Prisma client after hot reload.
@@ -109,3 +114,4 @@ Update this file whenever the current phase, active feature, or implementation s
 - Project API Prisma error handling verification completed with `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`. The requested `@prisma/client/runtime/library` import path is not available in this Prisma 7 generated-client setup, so the handlers use the generated `Prisma.PrismaClientKnownRequestError` export instead.
 - Project sidebar prefetch control verification completed with `npm.cmd run lint`.
 - Prisma client stale-connection cleanup verification completed with `.\node_modules\.bin\tsc.cmd --noEmit` and `npm.cmd run lint`.
+- Feature 08 verification completed with `npm.cmd run build`, `.\node_modules\.bin\tsc.cmd --noEmit`, `npm.cmd run lint`, and `git diff --check`.
