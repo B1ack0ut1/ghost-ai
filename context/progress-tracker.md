@@ -14,10 +14,13 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 07: Wire Editor Home - Completed
 - Feature 08: Editor Workspace Shell - Completed
 - Feature 09: Share Dialog - Completed
+- Feature 10: Liveblocks Setup - Completed
+- Feature 11: Base Canvas - Completed
+- Feature 12: Shape Panel - Completed
 
 ## Current Goal
 
-- Feature 09 Share Dialog is complete. Workspace members can inspect the current collaborator list, while owners can invite by email, remove collaborators, and copy the project link.
+- Feature 12 Shape Panel is complete. Users can drag supported node shapes from a floating canvas toolbar to create synchronized custom canvas nodes.
 
 ## Completed
 
@@ -41,6 +44,12 @@ Update this file whenever the current phase, active feature, or implementation s
   Replaced the minimal workspace route with the `/editor/[roomId]` server component. Added shared Clerk identity and project-access helpers, a centered access-denied state for missing or unauthorized projects, and a full-viewport project-aware workspace shell with the existing highlighted project sidebar, project navbar, canvas placeholder, and toggleable AI-sidebar placeholder.
 - Feature 09: Share Dialog
   Added a workspace Share action and dialog backed by `GET`, `POST`, and `DELETE /api/projects/[projectId]/collaborators`. Project members can list collaborators; ownership is enforced server-side for invitation and removal. Collaborator records remain email-based in PostgreSQL and are enriched at read time through Clerk's Backend API with display names and avatars when available, falling back to the stored email. Owners can invite, remove, and copy the current workspace URL with temporary confirmation; collaborators receive a read-only dialog.
+- Feature 10: Liveblocks Setup
+  Added typed Liveblocks presence and user metadata, a cached server-only Liveblocks client with deterministic cursor colors, and `POST /api/liveblocks-auth`. The auth route verifies Clerk authentication and project membership, creates the project-ID room only when absent, then issues a room-scoped write session token with the Clerk user’s display name, avatar, and color.
+- Feature 11: Base Canvas
+  Replaced the workspace canvas placeholder with a Liveblocks-backed React Flow canvas. Added room-scoped `LiveblocksProvider`/`RoomProvider` setup, suspense loading and Liveblocks connection-error states, and `useLiveblocksFlow`-managed empty initial nodes and edges. The base canvas uses loose connections, fit-to-view, a minimap, and a dot background. Added shared canvas node/edge contracts, supported node colors, and supported shapes in `types/canvas.ts`.
+- Feature 12: Shape Panel
+  Added a floating bottom-center shape toolbar with draggable rectangle, diamond, circle, pill, cylinder, and hexagon icons. Shape drag data carries the supported shape plus its default dimensions. Canvas drops are validated, converted to React Flow coordinates, and added through the Liveblocks flow change handler with timestamp-and-counter IDs, default node color, an empty label, and the custom canvas node type. Added the initial custom renderer, which intentionally displays every shape as a bordered rectangle until shape-specific rendering is introduced. Drag feedback displays a small green plus badge at the shape’s bottom-right, including in a canvas-backed cursor-following drag preview that avoids browser ghost-image artifacts.
 - Shared-project Clerk email resolution fix
   Updated project-access identity resolution to load the authenticated user’s email addresses through Clerk’s Backend API. This ensures email-based collaborator access and the shared-project sidebar work for sign-in methods whose session claims do not include an email address, including Google sign-in.
 - Project dialog UI refinement
@@ -72,7 +81,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Build the collaborative canvas once the next feature unit is specified.
+- Implement the next specified canvas feature on the collaborative canvas foundation.
 
 ## Open Questions
 
@@ -102,6 +111,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 08 implementation decision: the workspace shell is client-side only for sidebar controls and project dialogs, while its page and access checks remain server-side.
 - Feature 09 implementation decision: `ProjectCollaborator` remains the sole source of access-list membership and stores only email addresses; Clerk users are resolved at request time through `clerkClient().users.getUserList()` and a Clerk lookup failure intentionally degrades to email-only list entries.
 - Feature 09 implementation decision: collaborator listing permits any current project member, while the invite and removal endpoints independently verify the authenticated requester is the project owner.
+- Feature 10 implementation decision: Liveblocks uses server-issued room-scoped session tokens and private default room access. Existing application-level project membership remains the source of authorization, and the persisted project ID is the Liveblocks room ID.
+- Feature 11 implementation decision: React Flow state is synchronized directly through `useLiveblocksFlow` under each project’s existing Liveblocks room. This unit intentionally initializes an empty diagram and does not add a separate canvas-snapshot persistence path.
+- Feature 12 implementation decision: shape drops create nodes by passing an add change to `useLiveblocksFlow`’s `onNodesChange` handler, so newly dropped nodes share the same synchronized state path as all other canvas node changes.
 - Runtime fix decision: app runtime now also decodes `prisma+postgres://` API keys with embedded direct database URLs and uses `@prisma/adapter-pg` for local Prisma Postgres connections. This avoids the fetch-backed Prisma client path during local development.
 - Runtime fix decision: project-access identity resolves email addresses through Clerk’s Backend API using the authenticated user ID, with session-claim email fields retained only as a resilience fallback. The workspace and editor-home project lists share the same resolved identity during a workspace render.
 - Runtime fix decision: the cached Prisma singleton now tracks a connection signature and recreates the client when the runtime connection mode changes, preventing a Next dev process from reusing a stale fetch-backed Prisma client after hot reload.
@@ -140,3 +152,7 @@ Update this file whenever the current phase, active feature, or implementation s
 - Shared collaborator mutation validation verification completed with targeted ESLint for the collaborators route and `git diff --check`.
 - Explicit workspace navbar contract verification completed with targeted ESLint for the navbar shells and `git diff --check`.
 - Share dialog collaborator-load cancellation verification completed with targeted ESLint and `git diff --check`.
+- Feature 10 installs added: `@liveblocks/node@^3.23.0`, the server SDK required to create rooms and issue room-scoped session tokens.
+- Feature 10 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Feature 11 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
+- Feature 12 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.

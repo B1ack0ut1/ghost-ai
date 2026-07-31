@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { EditorNavbar } from "@/components/editor/editor-navbar";
+import { CollaborativeCanvas } from "@/components/editor/collaborative-canvas";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog } from "@/components/editor/share-dialog";
@@ -52,20 +53,9 @@ export function EditorWorkspaceShell({
 
         <section
           aria-label="Canvas workspace"
-          className="flex min-w-0 flex-1 items-center justify-center bg-base px-6"
+          className="min-w-0 flex-1 bg-base"
         >
-          <div className="max-w-sm text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand">
-              Workspace ready
-            </p>
-            <h1 className="mt-3 text-2xl font-semibold text-copy-primary">
-              Canvas coming soon
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-copy-secondary">
-              The collaborative design canvas for {projectName} will appear
-              here.
-            </p>
-          </div>
+          <CollaborativeCanvas roomId={projectId} />
         </section>
 
         <aside

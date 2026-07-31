@@ -24,7 +24,10 @@ const isPublicRoute = createRouteMatcher([
   `${signInPath}(.*)`,
   `${signUpPath}(.*)`,
 ]);
-const isProjectApiRoute = createRouteMatcher(["/api/projects(.*)"]);
+const isRouteHandledApi = createRouteMatcher([
+  "/api/liveblocks-auth",
+  "/api/projects(.*)",
+]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (request.nextUrl.pathname === "/") {
@@ -34,7 +37,7 @@ export default clerkMiddleware(async (auth, request) => {
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
-  if (!isPublicRoute(request) && !isProjectApiRoute(request)) {
+  if (!isPublicRoute(request) && !isRouteHandledApi(request)) {
     await auth.protect();
   }
 });
