@@ -51,6 +51,7 @@ interface ShapeToolbarItem {
 }
 
 interface ShapeDragState {
+  pointerOffset: { x: number; y: number };
   pointerId: number;
   position: { x: number; y: number };
   shape: CanvasNodeShape;
@@ -110,7 +111,11 @@ function ShapePanel({
   );
 }
 
-function ShapeDragOverlay({ shape, position }: Omit<ShapeDragState, "pointerId">) {
+function ShapeDragOverlay({
+  pointerOffset,
+  position,
+  shape,
+}: Omit<ShapeDragState, "pointerId">) {
   const Icon = SHAPE_TOOLBAR_ITEMS.find((item) => item.shape === shape)?.icon;
 
   if (!Icon) {
@@ -121,12 +126,17 @@ function ShapeDragOverlay({ shape, position }: Omit<ShapeDragState, "pointerId">
     <div
       aria-hidden="true"
       className="pointer-events-none fixed z-50"
-      style={{ left: position.x, top: position.y }}
+      style={{
+        left: position.x - pointerOffset.x,
+        top: position.y - pointerOffset.y,
+      }}
     >
-      <div className="absolute -left-6 top-2 flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border bg-elevated shadow-lg">
+      <div className="absolute left-0 top-0 flex h-9 w-9 items-center justify-center rounded-full border border-surface-border bg-elevated shadow-lg">
         <Icon className="h-4 w-4 text-copy-secondary" />
       </div>
-      <div className="absolute left-2 top-2 flex h-4 w-4 items-center justify-center rounded-full border-2 border-elevated bg-success text-base shadow-sm">
+      <div
+        className="absolute left-6 top-6 flex h-4 w-4 items-center justify-center rounded-full border-2 border-elevated bg-success text-base shadow-sm"
+      >
         <Plus className="h-2.5 w-2.5 stroke-[3]" />
       </div>
     </div>
@@ -223,7 +233,12 @@ function CollaborativeFlow() {
     event.preventDefault();
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
+    const buttonBounds = event.currentTarget.getBoundingClientRect();
     updateShapeDrag({
+      pointerOffset: {
+        x: event.clientX - buttonBounds.left,
+        y: event.clientY - buttonBounds.top,
+      },
       pointerId: event.pointerId,
       position: { x: event.clientX, y: event.clientY },
       shape,
@@ -320,6 +335,7 @@ function CollaborativeFlow() {
       />
       {shapeDrag ? (
         <ShapeDragOverlay
+          pointerOffset={shapeDrag.pointerOffset}
           position={shapeDrag.position}
           shape={shapeDrag.shape}
         />
