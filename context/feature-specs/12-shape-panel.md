@@ -12,17 +12,17 @@ Add a bottom shape panel so users can drag shapes onto the canvas and create new
    - cylinder
    - hexagon
 
-3. When dragging a shape, include the shape name and default size in the drag payload.
+3. When dragging a shape, keep the shape name and default size in the active pointer-drag state.
 
    Use sensible default sizes:
    - rectangles should be wider than tall
    - circles should be square
    - diamonds should be slightly larger so labels have room
 
-4. Add `dragover` and `drop` handling to the canvas wrapper.
+4. Render a pointer-following shape preview with a small green plus badge at the mouse cursor. Do not use native HTML drag-and-drop for these shape-panel controls.
 
-5. On drop:
-   - read the dragged shape payload
+5. On pointer release over the canvas:
+   - read the active shape-drag state
    - convert the screen position to canvas coordinates using React Flow
    - create a new node at that position
    - use an empty label
@@ -37,7 +37,7 @@ Add a bottom shape panel so users can drag shapes onto the canvas and create new
 
 ## Check When Done
 
-- Shape drag payload includes the correct shape and size data.
-- Drop logic creates new canvas nodes with the expected shape data.
+- Active shape-drag state includes the correct shape and size data.
+- Pointer-release logic creates new canvas nodes with the expected shape data.
 - New nodes use the custom canvas node type.
 - `npm run build` passes without type errors.

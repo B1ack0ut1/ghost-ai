@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState, type DragEvent } from "react";
+import { useRef, useState, type PointerEvent } from "react";
 import {
   Circle,
   Database,
   Diamond,
   Hexagon,
   Pill,
+  Plus,
   Square,
   type LucideIcon,
 } from "lucide-react";
@@ -29,14 +30,11 @@ import {
 import { CanvasNodeRenderer } from "@/components/editor/canvas-node";
 import {
   CANVAS_NODE_TYPE,
-  CANVAS_SHAPE_DRAG_MIME_TYPE,
   NODE_COLORS,
   NODE_SHAPE_DEFAULT_SIZES,
-  NODE_SHAPES,
   type CanvasEdge,
   type CanvasNode,
   type CanvasNodeShape,
-  type CanvasShapeDragPayload,
 } from "@/types/canvas";
 
 interface CollaborativeCanvasProps {
@@ -52,6 +50,22 @@ interface ShapeToolbarItem {
   shape: CanvasNodeShape;
 }
 
+interface ShapeDragState {
+  pointerId: number;
+  position: { x: number; y: number };
+  shape: CanvasNodeShape;
+}
+
+interface ShapePanelProps {
+  onPointerCancel: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerDown: (
+    event: PointerEvent<HTMLButtonElement>,
+    shape: CanvasNodeShape,
+  ) => void;
+  onPointerMove: (event: PointerEvent<HTMLButtonElement>) => void;
+  onPointerUp: (event: PointerEvent<HTMLButtonElement>) => void;
+}
+
 const SHAPE_TOOLBAR_ITEMS: readonly ShapeToolbarItem[] = [
   { shape: "rectangle", icon: Square },
   { shape: "diamond", icon: Diamond },
@@ -65,56 +79,12 @@ const canvasNodeTypes = {
   [CANVAS_NODE_TYPE]: CanvasNodeRenderer,
 };
 
-function isCanvasNodeShape(value: unknown): value is CanvasNodeShape {
-  return typeof value === "string" && NODE_SHAPES.includes(value as CanvasNodeShape);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function parseShapeDragPayload(value: string): CanvasShapeDragPayload | null {
-  try {
-    const payload: unknown = JSON.parse(value);
-
-    if (
-      !isRecord(payload) ||
-      !isCanvasNodeShape(payload.shape) ||
-      !isRecord(payload.size) ||
-      typeof payload.size.width !== "number" ||
-      typeof payload.size.height !== "number" ||
-      payload.size.width <= 0 ||
-      payload.size.height <= 0
-    ) {
-      return null;
-    }
-
-    return {
-      shape: payload.shape,
-      size: { width: payload.size.width, height: payload.size.height },
-    };
-  } catch {
-    return null;
-  }
-}
-
-function ShapePanel() {
-  function handleDragStart(
-    event: DragEvent<HTMLButtonElement>,
-    shape: CanvasNodeShape,
-  ) {
-    const payload: CanvasShapeDragPayload = {
-      shape,
-      size: NODE_SHAPE_DEFAULT_SIZES[shape],
-    };
-
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(
-      CANVAS_SHAPE_DRAG_MIME_TYPE,
-      JSON.stringify(payload),
-    );
-  }
-
+function ShapePanel({
+  onPointerCancel,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+}: ShapePanelProps) {
   return (
     <div
       aria-label="Canvas shapes"
@@ -124,16 +94,41 @@ function ShapePanel() {
       {SHAPE_TOOLBAR_ITEMS.map(({ icon: Icon, shape }) => (
         <button
           aria-label={`Drag ${shape} onto canvas`}
-          className="flex h-9 w-9 cursor-grab items-center justify-center rounded-full text-copy-secondary transition-colors hover:bg-subtle hover:text-brand active:cursor-grabbing"
-          draggable
+          className="flex h-9 w-9 touch-none cursor-grab items-center justify-center rounded-full text-copy-secondary transition-colors hover:bg-subtle hover:text-brand active:cursor-grabbing"
           key={shape}
-          onDragStart={(event) => handleDragStart(event, shape)}
+          onPointerCancel={onPointerCancel}
+          onPointerDown={(event) => onPointerDown(event, shape)}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
           title={`Drag ${shape} onto canvas`}
           type="button"
         >
           <Icon aria-hidden="true" className="h-4 w-4" />
         </button>
       ))}
+    </div>
+  );
+}
+
+function ShapeDragOverlay({ shape, position }: Omit<ShapeDragState, "pointerId">) {
+  const Icon = SHAPE_TOOLBAR_ITEMS.find((item) => item.shape === shape)?.icon;
+
+  if (!Icon) {
+    return null;
+  }
+
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed z-50"
+      style={{ left: position.x, top: position.y }}
+    >
+      <div className="absolute -left-6 top-2 flex h-9 w-9 items-center justify-center rounded-xl border border-surface-border bg-elevated shadow-lg">
+        <Icon className="h-4 w-4 text-copy-secondary" />
+      </div>
+      <div className="absolute left-2 top-2 flex h-4 w-4 items-center justify-center rounded-full border-2 border-elevated bg-success text-base shadow-sm">
+        <Plus className="h-2.5 w-2.5 stroke-[3]" />
+      </div>
     </div>
   );
 }
@@ -182,26 +177,19 @@ function CollaborativeFlow() {
       edges: { initial: [] },
     });
   const nodeCounter = useRef(0);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+  const shapeDragRef = useRef<ShapeDragState | null>(null);
   const [reactFlowInstance, setReactFlowInstance] =
     useState<ReactFlowInstance<CanvasNode, CanvasEdge> | null>(null);
+  const [shapeDrag, setShapeDrag] = useState<ShapeDragState | null>(null);
 
-  function handleDragOver(event: DragEvent<HTMLDivElement>) {
-    if (!event.dataTransfer.types.includes(CANVAS_SHAPE_DRAG_MIME_TYPE)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
+  function updateShapeDrag(nextShapeDrag: ShapeDragState | null) {
+    shapeDragRef.current = nextShapeDrag;
+    setShapeDrag(nextShapeDrag);
   }
 
-  function handleDrop(event: DragEvent<HTMLDivElement>) {
-    event.preventDefault();
-
-    const payload = parseShapeDragPayload(
-      event.dataTransfer.getData(CANVAS_SHAPE_DRAG_MIME_TYPE),
-    );
-
-    if (!payload || !reactFlowInstance) {
+  function createShapeNode(shape: CanvasNodeShape, screenPosition: { x: number; y: number }) {
+    if (!reactFlowInstance) {
       return;
     }
 
@@ -210,29 +198,92 @@ function CollaborativeFlow() {
       {
         type: "add",
         item: {
-          id: `${payload.shape}-${Date.now()}-${nodeCounter.current}`,
+          id: `${shape}-${Date.now()}-${nodeCounter.current}`,
           type: CANVAS_NODE_TYPE,
-          position: reactFlowInstance.screenToFlowPosition({
-            x: event.clientX,
-            y: event.clientY,
-          }),
+          position: reactFlowInstance.screenToFlowPosition(screenPosition),
           data: {
             label: "",
             color: NODE_COLORS[0].fill,
-            shape: payload.shape,
+            shape,
           },
-          style: payload.size,
+          style: NODE_SHAPE_DEFAULT_SIZES[shape],
         },
       },
     ]);
   }
 
+  function handleShapePointerDown(
+    event: PointerEvent<HTMLButtonElement>,
+    shape: CanvasNodeShape,
+  ) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateShapeDrag({
+      pointerId: event.pointerId,
+      position: { x: event.clientX, y: event.clientY },
+      shape,
+    });
+  }
+
+  function handleShapePointerMove(event: PointerEvent<HTMLButtonElement>) {
+    const activeShapeDrag = shapeDragRef.current;
+
+    if (!activeShapeDrag || activeShapeDrag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    updateShapeDrag({
+      ...activeShapeDrag,
+      position: { x: event.clientX, y: event.clientY },
+    });
+  }
+
+  function handleShapePointerUp(event: PointerEvent<HTMLButtonElement>) {
+    const activeShapeDrag = shapeDragRef.current;
+
+    if (!activeShapeDrag || activeShapeDrag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    updateShapeDrag(null);
+
+    const canvasBounds = canvasWrapperRef.current?.getBoundingClientRect();
+    const isOverCanvas =
+      canvasBounds &&
+      event.clientX >= canvasBounds.left &&
+      event.clientX <= canvasBounds.right &&
+      event.clientY >= canvasBounds.top &&
+      event.clientY <= canvasBounds.bottom;
+
+    if (isOverCanvas) {
+      createShapeNode(activeShapeDrag.shape, {
+        x: event.clientX,
+        y: event.clientY,
+      });
+    }
+  }
+
+  function handleShapePointerCancel(event: PointerEvent<HTMLButtonElement>) {
+    const activeShapeDrag = shapeDragRef.current;
+
+    if (!activeShapeDrag || activeShapeDrag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    updateShapeDrag(null);
+  }
+
   return (
-    <div
-      className="relative h-full w-full"
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    >
+    <div className="relative h-full w-full" ref={canvasWrapperRef}>
       <ReactFlow<CanvasNode, CanvasEdge>
         className="bg-base"
         colorMode="dark"
@@ -261,7 +312,18 @@ function CollaborativeFlow() {
           variant={BackgroundVariant.Dots}
         />
       </ReactFlow>
-      <ShapePanel />
+      <ShapePanel
+        onPointerCancel={handleShapePointerCancel}
+        onPointerDown={handleShapePointerDown}
+        onPointerMove={handleShapePointerMove}
+        onPointerUp={handleShapePointerUp}
+      />
+      {shapeDrag ? (
+        <ShapeDragOverlay
+          position={shapeDrag.position}
+          shape={shapeDrag.shape}
+        />
+      ) : null}
     </div>
   );
 }

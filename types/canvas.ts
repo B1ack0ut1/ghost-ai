@@ -26,8 +26,6 @@ export const NODE_SHAPES = [
 export type CanvasNodeColor = (typeof NODE_COLORS)[number]["fill"];
 export type CanvasNodeShape = (typeof NODE_SHAPES)[number];
 
-export const CANVAS_SHAPE_DRAG_MIME_TYPE = "application/x-ghost-ai-shape";
-
 export interface CanvasNodeSize {
   height: number;
   width: number;
@@ -41,11 +39,6 @@ export const NODE_SHAPE_DEFAULT_SIZES = {
   cylinder: { width: 160, height: 100 },
   hexagon: { width: 180, height: 110 },
 } as const satisfies Record<CanvasNodeShape, CanvasNodeSize>;
-
-export interface CanvasShapeDragPayload {
-  shape: CanvasNodeShape;
-  size: CanvasNodeSize;
-}
 
 export interface CanvasNodeData extends Record<string, unknown> {
   label: string;
