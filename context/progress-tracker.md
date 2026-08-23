@@ -17,13 +17,31 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 10: Liveblocks Setup - Completed
 - Feature 11: Base Canvas - Completed
 - Feature 12: Shape Panel - Completed
+- Feature 13: Node Shape - Completed
+- Feature 14: Note Editing - Completed
+- Feature 15: Node Color Toolbar - Completed
+- Feature 16: Edge Behavior - Completed
+- Feature 17: Canvas Ergonomics - Completed
+- Feature 18: Starter Templates - Completed
 
 ## Current Goal
 
-- Feature 12 Shape Panel is complete. Users can drag supported node shapes from a floating canvas toolbar to create synchronized custom canvas nodes.
+- Feature 18 Starter Templates is complete. The collaborative canvas can replace its current graph with a pre-built microservices, CI/CD, or event-driven system template.
 
 ## Completed
 
+- Feature 18: Starter Templates
+  Added a typed static template library for microservices, CI/CD, and event-driven system diagrams using the shared canvas schema and palette. Added a navbar entry point and a dialog with scrollable template cards and lightweight SVG previews that calculate fitted bounds from node positions. Importing a template removes the current Liveblocks nodes and edges, adds the selected graph through the existing change handlers, and fits the resulting view.
+- Shared button cursor affordance
+  Added `cursor-pointer` to the reusable enabled button base style so template import actions and every standard button visibly communicate clickability.
+- Starter template card refinement
+  Made template previews full-bleed card headers, clipped by the card border, while keeping the description and import action in a padded card body.
+- Starter template import action refinement
+  Updated the import action to use the card-surface outline treatment from the approved reference, matching the description section background.
+- Starter template import hover refinement
+  Added a subtle elevated-surface hover fill to the outline import action.
+- Feature 17: Canvas Ergonomics
+  Added a bottom-left floating control bar with animated React Flow zoom-out, fit-view, and zoom-in actions, plus Liveblocks history undo and redo actions that dim when unavailable. Added `hooks/use-keyboard-shortcuts.ts` to provide zoom and history shortcuts outside editable fields, and removed the canvas minimap.
 - Feature 01: Design System
   Added the initial design-system foundation with dark-theme token wiring, shared `cn()` utilities, and the following shadcn-style UI primitives: button, card, dialog, input, tabs, textarea, and scroll area. The homepage showcase was also added to verify the components render consistently.
 - Feature 02: Editor Chrome
@@ -47,9 +65,23 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 10: Liveblocks Setup
   Added typed Liveblocks presence and user metadata, a cached server-only Liveblocks client with deterministic cursor colors, and `POST /api/liveblocks-auth`. The auth route verifies Clerk authentication and project membership, creates the project-ID room only when absent, then issues a room-scoped write session token with the Clerk user’s display name, avatar, and color.
 - Feature 11: Base Canvas
-  Replaced the workspace canvas placeholder with a Liveblocks-backed React Flow canvas. Added room-scoped `LiveblocksProvider`/`RoomProvider` setup, suspense loading and Liveblocks connection-error states, and `useLiveblocksFlow`-managed empty initial nodes and edges. The base canvas uses loose connections, fit-to-view, a minimap, and a dot background. Added shared canvas node/edge contracts, supported node colors, and supported shapes in `types/canvas.ts`.
+  Replaced the workspace canvas placeholder with a Liveblocks-backed React Flow canvas. Added room-scoped `LiveblocksProvider`/`RoomProvider` setup, suspense loading and Liveblocks connection-error states, and `useLiveblocksFlow`-managed empty initial nodes and edges. The base canvas uses loose connections, fit-to-view, and a dot background. Added shared canvas node/edge contracts, supported node colors, and supported shapes in `types/canvas.ts`.
 - Feature 12: Shape Panel
   Added a floating bottom-center shape toolbar with rectangle, diamond, circle, pill, cylinder, and hexagon controls. Pointer-drag state carries the selected shape and its default dimensions. A local pointer-following overlay preserves the pointer’s original grab point on the shape and places the green plus badge overlapping the preview’s lower-right edge, then a release over the canvas is converted to React Flow coordinates and added through the Liveblocks flow change handler with timestamp-and-counter IDs, default node color, an empty label, and the custom canvas node type. This avoids native browser drag ghosts while leaving existing React Flow node dragging unchanged. Added the initial custom renderer, which intentionally displays every shape as a bordered rectangle until shape-specific rendering is introduced.
+- Feature 13: Node Shape
+  Replaced the placeholder node renderer with a shared shape surface. Rectangle, pill, and circle use CSS geometry; diamond, hexagon, and cylinder use scalable inline SVGs. Shape borders use the subtle canvas border at rest and the brand accent when selected. The existing pointer-drag overlay now reuses the same shape surface at the exact default node dimensions and retains the overlapping green plus badge. Nodes continue to be created and synchronized through the existing `useLiveblocksFlow` change handler.
+- Feature 14: Note Editing
+  Added React Flow resize controls that appear only for selected nodes, use subtle dark-canvas styling, and enforce an 80 by 48 pixel minimum size. Added centered inline label editing: double-clicking the label opens a same-position textarea with an `Untitled node` placeholder, updates the node through the existing Liveblocks flow handler as text changes, and closes on blur or Escape. Text editing uses React Flow's `nodrag`, `nopan`, and `nowheel` interaction guards.
+- Feature 15: Node Color Toolbar
+  Added a floating selected-node toolbar using the existing eight predefined fill/text color pairs. Each swatch shows its paired theme, has an accessible color name, uses a tightly controlled text-color glow on hover, and has a clear active ring. Selecting a swatch replaces the node through the existing Liveblocks flow state, so its fill updates immediately and the renderer automatically applies the matching text color. Toolbar interactions use React Flow interaction guards and stop pointer propagation, preventing node dragging and canvas panning.
+- Feature 16: Edge Behavior
+  Added a custom smooth-step edge renderer with rounded light strokes, end arrowheads, dimmed resting state, active hover/selection treatment, and a wider invisible interaction area. New connections are created through the existing collaborative edge change handler with the custom type, style, marker, and empty label data. Double-clicking an edge opens an auto-sizing inline input in React Flow's `EdgeLabelRenderer` at the midpoint returned by `getSmoothStepPath`; labels save on blur, Enter, or Escape, render as pill badges, and use the same collaborative replacement flow as all other edge updates. Active unlabeled edges display a faint editing hint, and all label interactions are protected from canvas panning and dragging.
+- Canvas resize and connection controls
+  Replaced visible side resize dots with selected-only edge resize zones, so dragging a node's top or bottom edge changes height and dragging its left or right edge changes width. Added four small white source handles, revealed on node hover at the top, right, bottom, and left midpoints. The canvas remains in React Flow loose connection mode, so these same handles can start or receive connections, with existing `onConnect` synchronization retained.
+- Canvas node dragging fix
+  Limited React Flow's `nodrag` class to the active inline-editing state. The centered label area is draggable again when not editing, while the textarea remains protected from node dragging and canvas panning.
+- Canvas label editing alignment fix
+  Positioned the inline editing textarea at the vertical center of its node, matching the resting label position so the caret and typed text do not jump to the top edge.
 - Shared-project Clerk email resolution fix
   Updated project-access identity resolution to load the authenticated user’s email addresses through Clerk’s Backend API. This ensures email-based collaborator access and the shared-project sidebar work for sign-in methods whose session claims do not include an email address, including Google sign-in.
 - Project dialog UI refinement
@@ -81,7 +113,7 @@ Update this file whenever the current phase, active feature, or implementation s
 
 ## Next Up
 
-- Implement the next specified canvas feature on the collaborative canvas foundation.
+- Implement the next specified feature on the collaborative canvas foundation.
 
 ## Open Questions
 
@@ -118,6 +150,9 @@ Update this file whenever the current phase, active feature, or implementation s
 - Runtime fix decision: project-access identity resolves email addresses through Clerk’s Backend API using the authenticated user ID, with session-claim email fields retained only as a resilience fallback. The workspace and editor-home project lists share the same resolved identity during a workspace render.
 - Runtime fix decision: the cached Prisma singleton now tracks a connection signature and recreates the client when the runtime connection mode changes, preventing a Next dev process from reusing a stale fetch-backed Prisma client after hot reload.
 - Runtime fix decision: when a connection-signature mismatch replaces the cached development Prisma client, the old client is asynchronously disconnected after replacement creation so the new client remains immediately available.
+- Feature 16 implementation decision: custom connections are added as `CanvasEdge` change items instead of the Liveblocks helper's plain `onConnect` callback, so every new persisted edge includes the required custom edge type, marker, style, and label data while continuing to synchronize through `onEdgesChange`.
+- Feature 17 implementation decision: canvas zoom uses the React Flow instance with a 180 ms transition; Liveblocks history remains the source of truth for undo and redo availability and actions.
+- Feature 18 implementation decision: starter templates are static codebase data and are applied through the existing Liveblocks node and edge change handlers, preserving the shared canvas as the only source of graph state.
 
 ## Session Notes
 
@@ -156,3 +191,16 @@ Update this file whenever the current phase, active feature, or implementation s
 - Feature 10 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
 - Feature 11 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, and `npm.cmd run build`.
 - Feature 12 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Feature 13 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Feature 14 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Feature 15 verification completed with targeted `npm.cmd run lint`, `.\\node_modules\\.bin\\tsc.cmd --noEmit`, and `npm.cmd run build`.
+- Canvas resize and connection controls verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Canvas node dragging fix verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Canvas label editing alignment fix verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, `npm.cmd run lint`, `npm.cmd run build`, and `git diff --check`.
+- Feature 16 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, focused `npm.cmd run lint -- components/editor/canvas-edge.tsx components/editor/collaborative-canvas.tsx types/canvas.ts`, `npm.cmd run build`, and `git diff --check`.
+- Feature 17 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, focused `npm.cmd run lint -- components/editor/collaborative-canvas.tsx hooks/use-keyboard-shortcuts.ts`, `npm.cmd run build`, and `git diff --check`.
+- Feature 18 verification completed with `.\\node_modules\\.bin\\tsc.cmd --noEmit`, focused `npm.cmd run lint -- components/editor/starter-templates.ts components/editor/starter-templates-modal.tsx components/editor/collaborative-canvas.tsx components/editor/editor-navbar.tsx components/editor/editor-workspace-shell.tsx`, `npm.cmd run build`, and `git diff --check`.
+- Shared button cursor affordance verification completed with focused ESLint and `git diff --check`.
+- Starter template card refinement verification completed with focused ESLint and `git diff --check`.
+- Starter template import action refinement verification completed with focused ESLint and `git diff --check`.
+- Starter template import hover refinement verification completed with focused ESLint and `git diff --check`.

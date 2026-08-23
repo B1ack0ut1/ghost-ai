@@ -6,6 +6,7 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
+  PanelsTopLeft,
   Share2,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ interface WorkspaceEditorNavbarProps extends EditorNavbarBaseProps {
   isAiSidebarOpen: boolean;
   onAiSidebarToggle: () => void;
   onShareClick: () => void;
+  onStarterTemplatesClick: () => void;
   projectName: string;
   showWorkspaceActions: true;
 }
@@ -28,6 +30,7 @@ interface ProjectListEditorNavbarProps extends EditorNavbarBaseProps {
   isAiSidebarOpen?: never;
   onAiSidebarToggle?: never;
   onShareClick?: never;
+  onStarterTemplatesClick?: never;
   projectName?: undefined;
   showWorkspaceActions?: false;
 }
@@ -64,6 +67,16 @@ export function EditorNavbar(props: EditorNavbarProps) {
       <div className="flex items-center justify-end gap-1">
         {props.showWorkspaceActions ? (
           <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label="Import starter template"
+              onClick={props.onStarterTemplatesClick}
+            >
+              <PanelsTopLeft className="h-4 w-4" />
+              <span className="hidden sm:inline">Templates</span>
+            </Button>
             <Button
               type="button"
               variant="ghost"
