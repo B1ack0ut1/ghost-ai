@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
+import {
+  CollaborativeCanvas,
+  type StarterTemplateImportRequest,
+} from "@/components/editor/collaborative-canvas";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import {
+  StarterTemplatesModal,
+} from "@/components/editor/starter-templates-modal";
+import { type CanvasTemplate } from "@/components/editor/starter-templates";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import { type EditorProjectLists } from "@/types/project";
 
@@ -25,7 +33,19 @@ export function EditorWorkspaceShell({
   const [isAiSidebarOpen, setIsAiSidebarOpen] = useState(true);
   const [isProjectSidebarOpen, setIsProjectSidebarOpen] = useState(false);
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+  const [isStarterTemplatesOpen, setIsStarterTemplatesOpen] = useState(false);
+  const [starterTemplateImport, setStarterTemplateImport] =
+    useState<StarterTemplateImportRequest | null>(null);
+  const starterTemplateImportCounter = useRef(0);
   const projectActions = useProjectActions({ activeProjectId: projectId });
+
+  function importStarterTemplate(template: CanvasTemplate) {
+    starterTemplateImportCounter.current += 1;
+    setStarterTemplateImport({
+      id: starterTemplateImportCounter.current,
+      template,
+    });
+  }
 
   return (
     <main className="flex min-h-dvh flex-col overflow-hidden bg-base text-copy-primary">
@@ -35,6 +55,7 @@ export function EditorWorkspaceShell({
         onAiSidebarToggle={() => setIsAiSidebarOpen((isOpen) => !isOpen)}
         onShareClick={() => setIsShareDialogOpen(true)}
         onSidebarToggle={() => setIsProjectSidebarOpen((isOpen) => !isOpen)}
+        onStarterTemplatesClick={() => setIsStarterTemplatesOpen(true)}
         projectName={projectName}
         showWorkspaceActions
       />
@@ -52,20 +73,13 @@ export function EditorWorkspaceShell({
 
         <section
           aria-label="Canvas workspace"
-          className="flex min-w-0 flex-1 items-center justify-center bg-base px-6"
+          className="min-w-0 flex-1 bg-base"
         >
-          <div className="max-w-sm text-center">
-            <p className="font-mono text-xs uppercase tracking-[0.2em] text-brand">
-              Workspace ready
-            </p>
-            <h1 className="mt-3 text-2xl font-semibold text-copy-primary">
-              Canvas coming soon
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-copy-secondary">
-              The collaborative design canvas for {projectName} will appear
-              here.
-            </p>
-          </div>
+          <CollaborativeCanvas
+            onStarterTemplateImported={() => setStarterTemplateImport(null)}
+            roomId={projectId}
+            starterTemplateImport={starterTemplateImport}
+          />
         </section>
 
         <aside
@@ -93,6 +107,11 @@ export function EditorWorkspaceShell({
         onOpenChange={setIsShareDialogOpen}
         projectId={projectId}
         projectName={projectName}
+      />
+      <StarterTemplatesModal
+        onImport={importStarterTemplate}
+        onOpenChange={setIsStarterTemplatesOpen}
+        open={isStarterTemplatesOpen}
       />
     </main>
   );
